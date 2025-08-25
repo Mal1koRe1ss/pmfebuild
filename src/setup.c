@@ -7,6 +7,8 @@
 #include <dirent.h>
 #include <errno.h>
 
+#include "extract.h"
+
 int ensure_directory_exists(const char* path) {
     struct stat st = {0};
     if (stat(path, &st) == -1) {
@@ -94,10 +96,12 @@ int move_recursive(const char* source_root, const char* source_path, const char*
     return 0;
 }
 
-int main() {
-    const char* source_folder = "/home/yaga/Desktop/moveme";
+int main(int argc, char *argv[]) {
+    const char* source_folder = "./extracted";
 
     const char* root_dir = "/";
+
+    extract(argv[1]);
 
     if (move_recursive(source_folder, source_folder, root_dir) != 0) {
         fprintf(stderr, "[ERR] Error occurred during move operation.\n");

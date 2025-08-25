@@ -1,22 +1,24 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
-#include <sys/wait.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
-void extract(FILE* file) {
+void extract(char* file) {
 
-	char pm[16] = {0};
+	char pm[16];
 
-	int 7z_check = system("7z </dev/null 2>/dev/null");
-	if (WEXITSTATUS(7z_check)==127) {
+	int sz_check = system("7z </dev/null 2>/dev/null");
+	printf("\e[1;1H\e[2J");
+	if (WEXITSTATUS(sz_check)==127) {
 		printf("7Zip not found...\nInstalling...");
-		if (access("/etc/redhat-release", F_OK) == 0) pm = "yum";
-		if (access("/etc/arch-release", F_OK) == 0) pm = "pacman";
-		if (access("/etc/gentoo-release", F_OK) == 0) pm = "emerge";
-		if (access("/etc/SuSE-release", F_OK) == 0) pm = "zypper";
-		if (access("/etc/debian_version", F_OK) == 0) pm = "apt-get";
-		if (access("/etc/alpine-release", F_OK) == 0) pm = "apk";
+		if (access("/etc/redhat-release", F_OK) == 0) strcpy(pm, "yum");
+		if (access("/etc/arch-release", F_OK) == 0) strcpy(pm, "pacman");
+		if (access("/etc/gentoo-release", F_OK) == 0) strcpy(pm, "emerge");
+		if (access("/etc/SuSE-release", F_OK) == 0) strcpy(pm,"zypper");
+		if (access("/etc/debian_version", F_OK) == 0) strcpy(pm, "apt-get");
+		if (access("/etc/alpine-release", F_OK) == 0) strcpy(pm, "apk");
 		printf("\nActive package manager : %s\n", pm);
 
 		if (strcmp(pm, "apt-get") == 0) system("sudo apt-get install p7zip-full");
@@ -25,30 +27,35 @@ void extract(FILE* file) {
 		if (strcmp(pm, "zypper") == 0) system("sudo install p7zip");
 		if (strcmp(pm, "pacman") == 0) system("sudo pacman -S 7zip");
 		if (strcmp(pm, "apk") == 0) system("sudo apk add 7zip");
-
-		break;
 	} 
 
 	char cmd[256];
-	mkdir("extracted");
-	system("mv %s ./extracted", file);
+	mkdir("extracted", 0755);
+	snprintf(cmd, sizeof(cmd), "7z x -o\"extracted\" %s", file);
+	system(cmd);
 
 	struct dirent *de;
 
-	DIR *dr = opendir(".");
+	DIR *dr = opendir("./extracted");
 	if (dr == NULL) { printf("Could not open directory\n"); exit(EXIT_FAILURE); }
 
 	char found_file[256] = {0};
 	while ((de = readdir(dr)) != NULL) {
 		if (strcmp(de->d_name, "data.tar") == 0 || strstr(de->d_name, ".cpio") != NULL) {
-			strcpy(found_file, de->d_name);
+			snprintf(found_file, sizeof(found_file), "extracted/%s", de->d_name);
 			break;
 		}  
 	}
 	closedir(dr);
 	
-	(strlen(found_file) > 0) ? snprintf(cmd, sizeof(cmd), "tar -xvf \"%s\"", found_file) : snprintf(cmd, sizeof(cmd), "cpio -idmv < \"%s\"", found_file);
-       system(cmd);
+	if (strlen(found_file) > 0) {
+		if (strstr(found_file, "data.tar")) {
+			snprintf(cmd, sizeof(cmd), "tar -xvf %s -C ./extracted", found_file);
+		} else {
+			snprintf(cmd, sizeof(cmd), "cpio -D ./extracted -idmv < \"%s\"", found_file);
+		}
+		system(cmd);
+	}
 
 	printf("Extraction complete!\n");       
 
