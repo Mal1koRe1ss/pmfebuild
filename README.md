@@ -20,4 +20,4 @@ sudo ./program packaganame.deb
 
 If one of these dependencies is missing during the removal process, it will be automatically installed.
 
-<h6>Best regards Malikoreiss & Pounter</h6>
+<h6>Best regards Mal1koRe1ss & Pounter</h6>
